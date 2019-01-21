@@ -258,9 +258,12 @@ EVENT_MANAGER:RegisterForEvent("PersonalAssistant_PlayerActivated", EVENT_PLAYER
 function PA.cursorPickup(type, param1, bagId, slotIndex, param4, param5, param6, itemSoundCategory) 
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local strItemType = PAL.getResourceMessage(itemType)
+	if not(strItemType) then strItemType = "N/A" end
+	local strSpecializedItemType = PAL.getResourceMessage(specializedItemType)
+	if not(strSpecializedItemType) then strSpecializedItemType = "N/A" end
 	local stack, maxStack = GetSlotStackSize(bagId, slotIndex)
 	local isSaved = ItemSaver.isItemSaved(bagId, slotIndex)
-	PA.println("itemType (%s): %s. (special = %s) ---> (%d/%d) --> %s   (saved = %s)", itemType, strItemType, specializedItemType, stack, maxStack, PA.getFormattedItemLink(bagId, slotIndex), tostring(isSaved))
+	PA.println("%s | ItemType: %s (%s) | SpecializedItemType: %s (%s) | Stacks: %d/%d | ItemSaver: %s", PA.getFormattedItemLink(bagId, slotIndex), strItemType, itemType, strSpecializedItemType, specializedItemType, stack, maxStack, tostring(isSaved))
 end
 
 -- EVENT_MANAGER:RegisterForEvent("PersonalAssistant_CursorPickup", EVENT_CURSOR_PICKUP, PA.cursorPickup)
