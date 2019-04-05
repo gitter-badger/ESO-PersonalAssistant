@@ -38,30 +38,32 @@ end
 
 
 local function _markAsJunkIfPossible(bagId, slotIndex, successMessageKey, itemLink)
+    -- start with the assumption that the item can be marked as junk
+    local canBeMarkedAsJunk = true
     -- Check if ESO allows the item to be marked as junk
     if CanItemBeMarkedAsJunk(bagId, slotIndex) then
-        -- TODO: integrate FCOItemSaver?
+        -- Then check if FCOIS is enabled and active
+        if FCOIS and FCOIS.addonVars.gPlayerActivated then
+            -- FCOIS prevention for being marked as junk (e.g. in AddOn Dustman)
+            if FCOIS.IsJunkLocked(bagId, slotIndex) then
+                -- print failure message
+                -- TODO: to be implemented
+                PAHF.debugln("FCOIS does not allow marking as junk: %s", itemLink)
+                canBeMarkedAsJunk = false
+            end
+        end
+    else
+        -- print failure message
+        -- TODO: to be implemented
+        PAHF.debugln("ESO does not allow marking as junk: %s", itemLink)
+        canBeMarkedAsJunk = false
+    end
 
-        local playerLocked = IsItemPlayerLocked(bagId, slotIndex)
---        d("playerLocked="..tostring(playerLocked))
-
---        CanItemBePlayerLocked(number Bag bagId, number slotIndex)
---        Returns: boolean canBePlayerLocked
---
---        IsItemPlayerLocked(number Bag bagId, number slotIndex)
---        Returns: boolean playerLocked
---
---        SetItemIsPlayerLocked(number Bag bagId, number slotIndex, boolean playerLocked)
-
+    if canBeMarkedAsJunk then
         -- It is considered safe to mark the item as junk now
         SetItemIsJunk(bagId, slotIndex, true)
-
-        -- make sure an itemLink is present
-        if itemLink == nil then itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS) end
-
         -- and check if it is stolen
         local itemStolen = IsItemLinkStolen(itemLink)
-
         -- print provided success message
         if itemStolen then
             local params = table.concat({itemLink, " ", PAC.ICONS.ITEMS.STOLEN.SMALL})
@@ -70,8 +72,6 @@ local function _markAsJunkIfPossible(bagId, slotIndex, successMessageKey, itemLi
             PAJ.println(successMessageKey, itemLink)
         end
     else
-        -- print failure message
-        -- TODO: to be implemented
     end
 end
 
@@ -128,8 +128,16 @@ local function OnFenceOpen(eventCode, allowSell, allowLaunder)
                             end
                             break
                         end
-                        -- Sell the (stolen) item which was marked as junk
-                        SellInventoryItem(itemData.bagId, itemData.slotIndex, itemData.stackCount)
+
+                        -- FCOIS prevention for being sold at a fence
+                        if FCOIS and FCOIS.addonVars.gPlayerActivated and FCOIS.IsFenceSellLocked(bagId, slotIndex) then
+                            -- print failure message
+                            -- TODO: to be implemented
+                            PAHF.debugln("FCOIS does not allow selling to fence: %s", GetItemLink(itemData.bagId, itemData.slotIndex, LINK_STYLE_BRACKETS))
+                        else
+                            -- Sell the (stolen) item which was marked as junk
+                            SellInventoryItem(itemData.bagId, itemData.slotIndex, itemData.stackCount)
+                        end
                     end
                 end
 
@@ -152,6 +160,9 @@ local function OnShopOpen()
                 local itemCountInBagBefore = GetNumBagUsedSlots(BAG_BACKPACK)
 
                 -- Sell all items marked as junk
+                -- TODO: to be checked if this also considers:
+                -- FCOIS prevention for being sold at a vendor
+                -- function FCOIS.IsVendorSellLocked(bagId, slotIndex)
                 SellAllJunk()
 
                 -- Have to call it with some delay, as the "currentMoney" and item count is not updated fast enough

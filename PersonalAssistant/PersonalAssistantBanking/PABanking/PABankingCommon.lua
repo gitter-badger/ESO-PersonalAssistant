@@ -13,10 +13,35 @@ local PAEM = PA.EventManager
 -- ---------------------------------------------------------------------------------------------------------------------
 
 local function _requestMoveItem(sourceBag, sourceSlot, destBag, destSlot, stackCount)
-    if IsProtectedFunction("RequestMoveItem") then
-        CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, destBag, destSlot, stackCount)
-    else
-        RequestMoveItem(sourceBag, sourceSlot, destBag, destSlot, stackCount)
+    -- start with the assumption that the item can be moved
+    local canBeMoved = true
+    -- Check if FCOIS is enabled and active
+    if FCOIS and FCOIS.addonVars.gPlayerActivated then
+        if sourceBag == BAG_BACKPACK and (destBag == BAG_BANK or destBag == BAG_SUBSCRIBER_BANK) then
+            -- FCOIS prevention for being depositted to player bank
+            if FCOIS.IsPlayerBankDepositLocked(sourceBag, sourceSlot) then
+                -- print failure message
+                -- TODO: to be implemented
+                PAHF.debugln("FCOIS does not allow depositing to player bank: %s", itemLink)
+                canBeMoved = false
+            end
+        elseif (sourceBag == BAG_BANK or sourceBag == BAG_SUBSCRIBER_BANK) and destBag == BAG_BACKPACK then
+            -- FCOIS prevention for being withdrawn from player bank
+            if FCOIS.IsPlayerBankWithdrawLocked(sourceBag, sourceSlot) then
+                -- print failure message
+                -- TODO: to be implemented
+                PAHF.debugln("FCOIS does not allow withdrawing from player bank: %s", itemLink)
+                canBeMoved = false
+            end
+        end
+    end
+
+    if canBeMoved then
+        if IsProtectedFunction("RequestMoveItem") then
+            CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, destBag, destSlot, stackCount)
+        else
+            RequestMoveItem(sourceBag, sourceSlot, destBag, destSlot, stackCount)
+        end
     end
 end
 
